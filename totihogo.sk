@@ -1,0 +1,702 @@
+#必要アドオン
+#SkQuery, Skellett, SkBee
+#
+#必要ライブラリ
+#・convert_lib.sk
+
+options:
+    msg_pos1_jp: &e保護したい区間の端をクリックしてください。
+    msg_pos1_en: &eClick on the edge of the section you want to protect.
+    msg_pos2_jp: &e保護したい区間の反対側の端をクリックしてください。
+    msg_pos2_en: &eClick on the opposite end of the section you want to protect.
+    msg_confirm_jp: &eこの区間で正しければ&e&n/claim&eを実行してください。キャンセルする場合は&e&n/cancel&eを実行してください。
+    msg_confirm_en: &eIf you are correct on this section, execute &e&n/claim&e. To cancel, execute &e&n/cancel&e.
+    msg_err_not_enough_blocks_jp: &c保護したい区間の表面積が36ブロック以上である必要があります。
+    msg_err_not_enough_blocks_en: &cThe surface area of the section you want to protect must be at least 36 blocks.
+    msg_cancelled_jp: &aキャンセルしました。
+    msg_cancelled_en: &aCanceled.
+    msg_err_not_cancelable_jp: &c保護の区間が決められていません。
+    msg_err_not_cancelable_en: &cThere is no defined section of protection.
+    msg_claimed_jp: &a選択した区間を保護しました。&7保護ID: &f
+    msg_claimed_en: &aThe selected section is now protected. &7Protection ID: &f
+    msg_already_claim_jp: &c選択した区間の中に、すでに保護されているブロックがあります。
+    msg_already_claim_en: &cThere are already protected blocks in the selected section.
+    msg_err_unknown_jp: &c不明なエラーが発生しました。再度お試しください。
+    msg_err_unknown_en: &cAn unknown error has occurred. Please try again.
+    msg_err_not_enough_remain_jp: &cあなたの保護できるブロック数が不足しています。&7残りの保護できるブロック数: &f
+    msg_err_not_enough_remain_en: &cYou have not protected enough blocks. &7Number of blocks remaining to protect: &f 
+    msg_not_own_land_jp: &cそこはあなたが所有している土地ではありません。
+    msg_not_own_land_en: &cThat is not land you own.
+    msg_not_exist_arg_jp: &cその引数は存在しません。
+    msg_not_exist_arg_en: &cThe argument does not exist.
+    msg_removed_jp1: &a保護ID &r
+    msg_removed_jp2: &a を削除しました。
+    msg_removed_en1: &aDeleted protection ID &r
+    msg_removed_en2: &a.
+    msg_remain_jp1: &aあなたは残り &r
+    msg_remain_jp2: &a ブロック保護できます。
+    msg_remain_en1: &aYou can protect the remaining &r
+    msg_remain_en2: &a blocks.
+    msg_help_flag_jp: &a(&a&n/flag&aまたは&a&n/flaggui&a(チェストGUI)で、制限の管理ができます。)
+    msg_help_flag_en: &a(You can use &a&n/flag&a or &a&n/flaggui&a (chest GUI) to manage restrictions.)
+    msg_cannot_changed_jp: &c!! &7そこでは、その動作をすることができません。
+    msg_cannot_changed_en: &c!! &7There, it is not possible to perform that operation.
+
+on join:
+    if {hogo.player::%player's uuid%::blocknum} is not set:
+        set {hogo.player::%player's uuid%::blocknum} to 20000
+    hogo_reset(player)
+
+function hogo_reset(p: player):
+    set {_v} to vector between metadata value "hogo_pos1" of {_p} and metadata value "hogo_pos2" of {_p}
+    make {_p} see block at metadata value "hogo_pos1" of {_p} as block at metadata value "hogo_pos1" of {_p}
+    make {_p} see block at metadata value "hogo_pos2" of {_p} as block at metadata value "hogo_pos2" of {_p}
+    if x of {_v} is more than 0:
+        make {_p} see block 1 east metadata value "hogo_pos1" of {_p} as block 1 east metadata value "hogo_pos1" of {_p}
+        make {_p} see block 1 west metadata value "hogo_pos2" of {_p} as block 1 west metadata value "hogo_pos1" of {_p}
+    else:
+        make {_p} see block 1 west metadata value "hogo_pos1" of {_p} as block 1 west metadata value "hogo_pos1" of {_p}
+        make {_p} see block 1 east metadata value "hogo_pos2" of {_p} as block 1 east metadata value "hogo_pos1" of {_p}
+    if z of {_v} is more than 0:
+        make {_p} see block 1 south metadata value "hogo_pos1" of {_p} as block 1 south metadata value "hogo_pos1" of {_p}
+        make {_p} see block 1 north metadata value "hogo_pos2" of {_p} as block 1 north metadata value "hogo_pos1" of {_p}
+    else:
+        make {_p} see block 1 north metadata value "hogo_pos1" of {_p} as block 1 north metadata value "hogo_pos1" of {_p}
+        make {_p} see block 1 south metadata value "hogo_pos2" of {_p} as block 1 south metadata value "hogo_pos1" of {_p}    
+    clear metadata value "hogo_pos1" of {_p}
+    clear metadata value "hogo_pos2" of {_p}
+
+command /hogo [<text>]:
+    trigger:
+        if arg-1 is not set:
+            if player's current language is "ja_jp":
+                send "&c使用法: /hogo <remove>" to player
+            else:
+                send "&cUsage: /hogo <remove>" to player
+        else if arg-1 is "remove":
+            clear {_n}
+            loop {hogo.list::*}:
+                if x location of player is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                    if y location of player is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                        if z location of player is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                            set {_n} to loop-value
+                            exit loop
+            if {hogo.info::%{_n}%::owner} is player's uuid:
+                clear {_b}
+                loop all blocks within {hogo.info::%{_n}%::pos1} and {hogo.info::%{_n}%::pos2}:
+                    if loop-block is not air:
+                        add 1 to {_b}
+                hogo_remove({_n})
+                add {_b} to {hogo.player::%player's uuid%::blocknum}
+                if player's current language is "ja_jp":
+                    send "{@msg_removed_jp1}&7%{_n}%{@msg_removed_jp2}" to player
+                    send "{@msg_remain_jp1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_jp2}" to player
+                else:
+                    send "{@msg_removed_en1}&7%{_n}%{@msg_removed_en2}" to player
+                    send "{@msg_remain_en1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_en2}" to player
+            else:
+                if player's current language is "ja_jp":
+                    send "{@msg_not_own_land_jp}" to player
+                else:
+                    send "{@msg_not_own_land_en}" to player
+        else:
+            if player's current language is "ja_jp":
+                send "{@msg_not_exist_arg_jp}" to player
+            else:
+                send "{@msg_not_exist_arg_en}" to player
+
+every 5 tick:
+    loop all players:
+        if loop-player's tool is golden shovel:
+            if metadata value "hogo_pos1" of loop-player is not set:
+                if loop-player's current language is "ja_jp":
+                    send action bar "{@msg_pos1_jp}" to loop-player
+                else:
+                    send action bar "{@msg_pos1_en}" to loop-player
+            else if metadata value "hogo_pos2" of loop-player is not set:
+                if loop-player's current language is "ja_jp":
+                    send action bar "{@msg_pos2_jp}" to loop-player
+                else:
+                    send action bar "{@msg_pos2_en}" to loop-player
+            else:
+                if loop-player's current language is "ja_jp":
+                    send action bar "{@msg_confirm_jp}" to loop-player
+                else:
+                    send action bar "{@msg_confirm_en}" to loop-player
+
+every 5 tick:
+    loop all players:
+        clear {_n}
+        loop {hogo.list::*}:
+            if x location of loop-player is between x location of {hogo.info::%loop-value-2%::pos1} and x location of {hogo.info::%loop-value-2%::pos2}:
+                if y location of loop-player is between y location of {hogo.info::%loop-value-2%::pos1} and y location of {hogo.info::%loop-value-2%::pos2}:
+                    if z location of loop-player is between z location of {hogo.info::%loop-value-2%::pos1} and z location of {hogo.info::%loop-value-2%::pos2}:
+                        set {_n} to loop-value-2
+                        exit loop
+        if {_n} is set:
+            if {convert_lib.uuid::%{hogo.info::%{_n}%::owner}%} is not set:
+                if loop-player's current language is "ja_jp":
+                    send action bar "&e◆ &a&l所有者: &7不明 &e◆" to loop-player
+                else:
+                    send action bar "&e◆ &a&lOwner: &7Unknown &e◆" to loop-player
+            else:
+                if loop-player's current language is "ja_jp":
+                    send action bar "&e◆ &a&l所有者: &7%{convert_lib.uuid::%{hogo.info::%{_n}%::owner}%}% &7(%{_n}%) &e◆" to loop-player
+                else:
+                    send action bar "&e◆ &a&lOwner: &7%{convert_lib.uuid::%{hogo.info::%{_n}%::owner}%}% &7(%{_n}%) &e◆" to loop-player
+
+every 2 second:
+    loop all players:
+        if metadata value "hogo_pos1" of loop-player is set:
+            if metadata value "hogo_pos2" of loop-player is set:
+                set {_v} to vector between metadata value "hogo_pos1" of loop-player and metadata value "hogo_pos2" of loop-player
+                make loop-player see block at metadata value "hogo_pos1" of loop-player as gold block
+                make loop-player see block at metadata value "hogo_pos2" of loop-player as diamond block
+                if x of {_v} is more than 0:
+                    make loop-player see block 1 east metadata value "hogo_pos1" of loop-player as gold block
+                    make loop-player see block 1 west metadata value "hogo_pos2" of loop-player as diamond block
+                else:
+                    make loop-player see block 1 west metadata value "hogo_pos1" of loop-player as gold block
+                    make loop-player see block 1 east metadata value "hogo_pos2" of loop-player as diamond block
+                if z of {_v} is more than 0:
+                    make loop-player see block 1 south metadata value "hogo_pos1" of loop-player as gold block
+                    make loop-player see block 1 north metadata value "hogo_pos2" of loop-player as diamond block
+                else:
+                    make loop-player see block 1 north metadata value "hogo_pos1" of loop-player as gold block
+                    make loop-player see block 1 south metadata value "hogo_pos2" of loop-player as diamond block
+                wait a second
+                make loop-player see block at metadata value "hogo_pos1" of loop-player as block at metadata value "hogo_pos1" of loop-player
+                make loop-player see block at metadata value "hogo_pos2" of loop-player as block at metadata value "hogo_pos2" of loop-player
+                if x of {_v} is more than 0:
+                    make loop-player see block 1 east metadata value "hogo_pos1" of loop-player as block 1 east metadata value "hogo_pos1" of loop-player
+                    make loop-player see block 1 west metadata value "hogo_pos2" of loop-player as block 1 west metadata value "hogo_pos1" of loop-player
+                else:
+                    make loop-player see block 1 west metadata value "hogo_pos1" of loop-player as block 1 west metadata value "hogo_pos1" of loop-player
+                    make loop-player see block 1 east metadata value "hogo_pos2" of loop-player as block 1 east metadata value "hogo_pos1" of loop-player
+                if z of {_v} is more than 0:
+                    make loop-player see block 1 south metadata value "hogo_pos1" of loop-player as block 1 south metadata value "hogo_pos1" of loop-player
+                    make loop-player see block 1 north metadata value "hogo_pos2" of loop-player as block 1 north metadata value "hogo_pos1" of loop-player
+                else:
+                    make loop-player see block 1 north metadata value "hogo_pos1" of loop-player as block 1 north metadata value "hogo_pos1" of loop-player
+                    make loop-player see block 1 south metadata value "hogo_pos2" of loop-player as block 1 south metadata value "hogo_pos1" of loop-player    
+
+on right click:
+    if player's tool is golden shovel:
+        if metadata value "hogo_pos1" of player is not set:
+            if event-block is not set:
+                if player's current language is "ja_jp":
+                    send "{@msg_pos1_jp}" to player
+                    send "{@msg_remain_jp1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_jp2}" to player
+                else:
+                    send "{@msg_pos1_en}" to player
+                    send "{@msg_remain_en1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_en2}" to player
+            else:
+                cancel event
+                wait a tick
+                make player see event-block as gold block
+                set metadata value "hogo_pos1" of player to location of event-block
+                if player's current language is "ja_jp":
+                    send "{@msg_pos2_jp}" to player
+                else:
+                    send "{@msg_pos2_en}" to player
+        else if metadata value "hogo_pos2" of player is not set:
+            if event-block is not set:
+                if player's current language is "ja_jp":
+                    send "{@msg_pos2_jp}" to player
+                else:
+                    send "{@msg_pos2_en}" to player
+            else:
+                cancel event
+                wait a tick
+                make player see event-block as diamond block
+                set metadata value "hogo_pos2" of player to location of event-block
+                set {_v} to vector between metadata value "hogo_pos1" of player and metadata value "hogo_pos2" of player
+                set {_d} to ((difference between x of {_v} and 0)+1)*((difference between z of {_v} and 0)+1)
+                if {_d} is more than 36:
+                    if player's current language is "ja_jp":
+                        send "{@msg_confirm_jp}" to player
+                    else:
+                        send "{@msg_confirm_en}" to player
+                    if x of {_v} is more than 0:
+                        make player see block 1 east metadata value "hogo_pos1" of player as gold block
+                        make player see block 1 west metadata value "hogo_pos2" of player as diamond block
+                    else:
+                        make player see block 1 west metadata value "hogo_pos1" of player as gold block
+                        make player see block 1 east metadata value "hogo_pos2" of player as diamond block
+                    if z of {_v} is more than 0:
+                        make player see block 1 south metadata value "hogo_pos1" of player as gold block
+                        make player see block 1 north metadata value "hogo_pos2" of player as diamond block
+                    else:
+                        make player see block 1 north metadata value "hogo_pos1" of player as gold block
+                        make player see block 1 south metadata value "hogo_pos2" of player as diamond block
+                else:
+                    if player's current language is "ja_jp":
+                        send "{@msg_err_not_enough_blocks_jp}" to player
+                    else:
+                        send "{@msg_err_not_enough_blocks_en}" to player
+                    hogo_reset(player)
+
+command /cancel:
+    trigger:
+        if metadata value "hogo_pos1" of player is set:
+            if metadata value "hogo_pos2" of player is set:
+                if player's current language is "ja_jp":
+                    send "{@msg_cancelled_jp}" to player
+                else:
+                    send "{@msg_cancelled_en}" to player
+                hogo_reset(player)
+            else:
+                if player's current language is "ja_jp":
+                    send "{@msg_err_not_cancelable_jp}" to player
+                else:
+                    send "{@msg_err_not_cancelable_en}" to player
+        else:
+            if player's current language is "ja_jp":
+                send "{@msg_err_not_cancelable_jp}" to player
+            else:
+                send "{@msg_err_not_cancelable_en}" to player
+
+command /claim:
+    trigger:
+        if metadata value "hogo_pos1" of player is set:
+            if metadata value "hogo_pos2" of player is set:
+                hogo_claim(player)                
+            else:
+                if player's current language is "ja_jp":
+                    send "{@msg_err_not_cancelable_jp}" to player
+                else:
+                    send "{@msg_err_not_cancelable_en}" to player
+        else:
+            if player's current language is "ja_jp":
+                send "{@msg_err_not_cancelable_jp}" to player
+            else:
+                send "{@msg_err_not_cancelable_en}" to player
+
+function hogo_claim(p: player):
+    clear {_n}
+    loop {hogo.list::*}:
+        loop all blocks within {hogo.info::%loop-value%::pos1} and {hogo.info::%loop-value%::pos2}:
+            if x location of loop-block is between x location of (metadata value "hogo_pos1" of {_p}) and x location of (metadata value "hogo_pos2" of {_p}):
+                if y location of loop-block is between y location of (metadata value "hogo_pos1" of {_p}) and y location of (metadata value "hogo_pos2" of {_p}):
+                    if z location of loop-block is between z location of (metadata value "hogo_pos1" of {_p}) and z location of (metadata value "hogo_pos2" of {_p}):
+                        add 1 to {_n}
+    if {_n} is not set:
+        set {_code} to random integer between 1000000 and 9999999
+        if {hogo.list::*} contains {_code}:
+            if {_p}'s current language is "ja_jp":
+                send "{@msg_err_unknown_jp}" to {_p}
+            else:
+                send "{@msg_err_unknown_en}" to {_p}
+        else:
+            set {_n} to 0
+            loop all blocks within (metadata value "hogo_pos1" of {_p}) and (metadata value "hogo_pos2" of {_p}):
+                if loop-block is not air:
+                    add 1 to {_n}
+            if {hogo.player::%{_p}'s uuid%::blocknum} is more than {_n}-1:
+                remove {_n} from {hogo.player::%{_p}'s uuid%::blocknum}
+                set {hogo.info::%{_code}%::pos1} to metadata value "hogo_pos1" of {_p}
+                set {hogo.info::%{_code}%::pos2} to metadata value "hogo_pos2" of {_p}
+                set {hogo.info::%{_code}%::owner} to {_p}'s uuid
+                add {_code} to {hogo.list::*}
+                if {_p}'s current language is "ja_jp":
+                    send "%nl%{@msg_claimed_jp}%{_code}%" to {_p}
+                    send "{@msg_remain_jp1}&7%{hogo.player::%{_p}'s uuid%::blocknum}%{@msg_remain_jp2}" to {_p}
+                    send "{@msg_help_flag_jp}%nl%" to {_p}
+                else:
+                    send "%nl%{@msg_claimed_en}%{_code}%" to {_p}
+                    send "{@msg_remain_en1}&7%{hogo.player::%{_p}'s uuid%::blocknum}%{@msg_remain_en2}" to {_p}
+                    send "{@msg_help_flag_en}%nl%" to {_p}
+                hogo_reset({_p})
+            else:
+                if {_p}'s current language is "ja_jp":
+                    send "{@msg_err_not_enough_remain_jp}%{hogo.player::%{_p}'s uuid%::blocknum}%" to {_p}
+                else:
+                    send "{@msg_err_not_enough_remain_en}%{hogo.player::%{_p}'s uuid%::blocknum}%" to {_p}         
+    else:
+        if {_p}'s current language is "ja_jp":
+            send "{@msg_already_claim_jp}" to {_p}
+        else:
+            send "{@msg_already_claim_en}" to {_p}
+
+command /admin_hogo:
+    permission: admin
+    trigger:
+        hogo_show_gui_main(player)
+
+on inventory click:
+    if name of player's current inventory is "&e◆ 土地保護 - 管理 ◆":
+        cancel event
+        if name of event-item is "&e&l保護の一覧":
+            hogo_show_gui_list(player)
+        else if name of event-item is "&c&l保護の削除":
+            hogo_show_gui_remove(player)
+    else if name of player's current inventory is "&c&l◆ 土地保護 - 削除 ◆":
+        cancel event
+        if tag "id" of nbt item compound of event-item is set:
+            set {_id} to tag "id" of nbt item compound of event-item
+            clear {_n}
+            loop all blocks within {hogo.info::%{_id}%::pos1} and {hogo.info::%{_id}%::pos2}:
+                if loop-block is not air:
+                    add 1 to {_n}
+            add {_n} to {hogo.player::%{hogo.info::%{_id}%::owner}%::blocknum}
+            hogo_remove({_id})
+            send "&a保護ID &7%{_id}% &aを削除しました。" to player
+            hogo_show_gui_remove(player)
+    else if name of player's current inventory is "&e◆ 土地保護 - 一覧 ◆":
+        cancel event
+    else if name of player's current inventory is "&e◆ 土地の制限 ◆" or "&e◆ Land Restrictions ◆":
+        cancel event
+        if tag "code" of nbt item compound of event-item is set:
+            set {_code} to tag "code" of nbt item compound of event-item
+            set {_title} to tag "title" of nbt item compound of event-item
+            set {_flag} to tag "flag" of nbt item compound of event-item
+            if {hogo.info::%{_code}%::flag::%{_flag}%} is not set:
+                set {hogo.info::%{_code}%::flag::%{_flag}%} to true
+                if player's current language is "ja_jp":
+                    set {_status} to "&a&n許可"
+                else:
+                    set {_status} to "&a&nAllow"
+            else:
+                clear {hogo.info::%{_code}%::flag::%{_flag}%}
+                if player's current language is "ja_jp":
+                    set {_status} to "&c&n禁止"
+                else:
+                    set {_status} to "&c&nDeny"
+            if player's current language is "ja_jp":
+                send "&7%{_title}% &aを &7%{_status}%&a に変更しました。" to player
+            else:
+                send "&7%{_title}% &ais changed to &7%{_status}%&a." to player
+            hogo_show_gui_flag_main(player)
+
+function hogo_show_gui_main(p: player):
+    open chest inventory with 3 rows named "&e◆ 土地保護 - 管理 ◆" to {_p}
+    set slot 12 of {_p}'s current inventory to yellow terracotta named "&e&l保護の一覧" with lore "&7[ クリックして開く ]"
+    set slot 14 of {_p}'s current inventory to red terracotta named "&c&l保護の削除" with lore "&7[ クリックして開く ]"
+
+function hogo_show_gui_list(p: player):
+    open chest inventory with 6 rows named "&e◆ 土地保護 - 一覧 ◆" to {_p}
+    set {_n} to 0
+    loop {hogo.list::*}:
+        set {_x1} to x location of {hogo.info::%loop-value%::pos1}
+        set {_y1} to y location of {hogo.info::%loop-value%::pos1}
+        set {_z1} to z location of {hogo.info::%loop-value%::pos1}
+        set {_x2} to x location of {hogo.info::%loop-value%::pos2}
+        set {_y2} to y location of {hogo.info::%loop-value%::pos2}
+        set {_z2} to z location of {hogo.info::%loop-value%::pos2}
+        set slot {_n} of {_p}'s current inventory to {convert_lib.uuid::%{hogo.info::%loop-value%::owner}%}'s skull named "&a保護ID: &7%loop-value%" with lore "&e&l保護範囲:", "&71 > %{_x1}%, %{_y1}%, %{_z1}%", "&72 > %{_x2}%, %{_y2}%, %{_z2}%" and "&e&l所有者: &7%{hogo.info::%loop-value%::owner} parsed as player%" with nbt compound from "{""id"":%loop-value%}"
+        add 1 to {_n}
+
+function hogo_show_gui_remove(p: player):
+    open chest inventory with 6 rows named "&c&l◆ 土地保護 - 削除 ◆" to {_p}
+    set {_n} to 0
+    loop {hogo.list::*}:
+        set {_x1} to x location of {hogo.info::%loop-value%::pos1}
+        set {_y1} to y location of {hogo.info::%loop-value%::pos1}
+        set {_z1} to z location of {hogo.info::%loop-value%::pos1}
+        set {_x2} to x location of {hogo.info::%loop-value%::pos2}
+        set {_y2} to y location of {hogo.info::%loop-value%::pos2}
+        set {_z2} to z location of {hogo.info::%loop-value%::pos2}
+        set slot {_n} of {_p}'s current inventory to {convert_lib.uuid::%{hogo.info::%loop-value%::owner}%}'s skull named "&a保護ID: &7%loop-value%" with lore "&e&l保護範囲:", "&71 > %{_x1}%, %{_y1}%, %{_z1}%", "&72 > %{_x2}%, %{_y2}%, %{_z2}%", "&e&l所有者: &7%{hogo.info::%loop-value%::owner} parsed as player%" and "&c&l&n[ クリックして削除 ]" with nbt compound from "{""id"":%loop-value%}"
+        add 1 to {_n}
+
+function hogo_remove(code: integer):
+    clear {hogo.info::%{_code}%::*}
+    remove {_code} from {hogo.list::*}
+
+command /flaggui:
+    trigger:
+        hogo_show_gui_flag_main(player)
+
+function hogo_show_gui_flag_main(p: player):
+    clear {_code}
+    loop {hogo.list::*}:
+        if x location of {_p} is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+            if y location of {_p} is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                if z location of {_p} is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                    set {_code} to loop-value
+                    exit loop
+    if {hogo.info::%{_code}%::owner} is {_p}'s uuid:
+        if {_p}'s current language is "ja_jp":
+            open chest inventory with 3 rows named "&e◆ 土地の制限 ◆" to {_p}
+            set {_status_break} to "&c禁止"
+            set {_status_place} to "&c禁止"
+            set {_status_pvp} to "&c禁止"
+            set {_status_atkmob} to "&c禁止"
+            set {_status_use} to "&c禁止"
+
+            if {hogo.info::%{_code}%::flag::break} is set:
+                set {_status_break} to "&a許可"
+            if {hogo.info::%{_code}%::flag::place} is set:
+                set {_status_place} to "&a許可"
+            if {hogo.info::%{_code}%::flag::pvp} is set:
+                set {_status_pvp} to "&a許可"
+            if {hogo.info::%{_code}%::flag::atkmob} is set:
+                set {_status_atkmob} to "&a許可"
+            if {hogo.info::%{_code}%::flag::use} is set:
+                set {_status_use} to "&a許可"
+            set slot 10 of {_p}'s current inventory to diamond pickaxe named "&aブロックの破壊" with lore "&7現状態: %{_status_break}%" and "&7&n[ クリックして変える ]" with nbt compound from "{""code"":%{_code}%,""title"":""ブロックの破壊"",""flag"":""break""}"
+            set slot 11 of {_p}'s current inventory to oak planks named "&aブロックの設置" with lore "&7現状態: %{_status_place}%" and "&7&n[ クリックして変える ]" with nbt compound from "{""code"":%{_code}%,""title"":""ブロックの設置"",""flag"":""place""}"
+            set slot 12 of {_p}'s current inventory to diamond sword named "&aプレイヤー同士のPvP" with lore "&7現状態: %{_status_pvp}%" and "&7&n[ クリックして変える ]" with nbt compound from "{""code"":%{_code}%,""title"":""プレイヤー同士のPvP"",""flag"":""pvp""}"
+            set slot 13 of {_p}'s current inventory to golden sword named "&aモブへの攻撃" with lore "&7現状態: %{_status_atkmob}%" and "&7&n[ クリックして変える ]" with nbt compound from "{""code"":%{_code}%,""title"":""モブへの攻撃"",""flag"":""atkmob""}"
+            set slot 14 of {_p}'s current inventory to crafting table named "&aアイテム、ブロックの使用" with lore "&7現状態: %{_status_use}%" and "&7&n[ クリックして変える ]" with nbt compound from "{""code"":%{_code}%,""title"":""アイテム、ブロックの使用"",""flag"":""use""}"
+        else:
+            open chest inventory with 3 rows named "&e◆ Land Restrictions ◆" to {_p}
+            set {_status_break} to "&cDeny"
+            set {_status_place} to "&cDeny"
+            set {_status_pvp} to "&cDeny"
+            set {_status_atkmob} to "&cDeny"
+            set {_status_use} to "&cDeny"
+
+            if {hogo.info::%{_code}%::flag::break} is set:
+                set {_status_break} to "&aAllow"
+            if {hogo.info::%{_code}%::flag::place} is set:
+                set {_status_place} to "&aAllow"
+            if {hogo.info::%{_code}%::flag::pvp} is set:
+                set {_status_pvp} to "&aAllow"
+            if {hogo.info::%{_code}%::flag::atkmob} is set:
+                set {_status_atkmob} to "&aAllow"
+            if {hogo.info::%{_code}%::flag::use} is set:
+                set {_status_use} to "&aAllow"
+            set slot 10 of {_p}'s current inventory to diamond pickaxe named "&aBlock-Break" with lore "&7Current: %{_status_break}%" and "&7&n[ Click to change ]" with nbt compound from "{""code"":%{_code}%,""title"":""Block-Break"",""flag"":""break""}"
+            set slot 11 of {_p}'s current inventory to oak planks named "&aBlock-Place" with lore "&7Current: %{_status_place}%" and "&7&n[ Click to change ]" with nbt compound from "{""code"":%{_code}%,""title"":""Block-Place"",""flag"":""place""}"
+            set slot 12 of {_p}'s current inventory to diamond sword named "&aPvP between players" with lore "&7Current: %{_status_pvp}%" and "&7&n[ Click to change ]" with nbt compound from "{""code"":%{_code}%,""title"":""PvP between players"",""flag"":""pvp""}"
+            set slot 13 of {_p}'s current inventory to golden sword named "&aAttacks on mobs" with lore "&7Current: %{_status_atkmob}%" and "&7&n[ Click to change ]" with nbt compound from "{""code"":%{_code}%,""title"":""Attacks on mobs"",""flag"":""atkmob""}"
+            set slot 14 of {_p}'s current inventory to crafting table named "&aUse of items and blocks" with lore "&7Current: %{_status_use}%" and "&7&n[ Click to change ]" with nbt compound from "{""code"":%{_code}%,""title"":""Use of items and blocks"",""flag"":""use""}"
+    else:
+        if {_p}'s current language is "ja_jp":
+            send "{@msg_not_own_land_jp}" to {_p}
+        else:
+            send "{@msg_not_own_land_en}" to {_p}
+
+command /flag [<text>]:
+    trigger:
+        clear {_code}
+        loop {hogo.list::*}:
+            if x location of player is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                if y location of player is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                    if z location of player is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                        set {_code} to loop-value
+                        exit loop
+        if {hogo.info::%{_code}%::owner} is player's uuid:
+            if arg-1 is not set:
+                hogo_show_help_flag(player, {_code})
+            else if arg-1 is "break":
+                hogo_flag(player, {_code}, "break")
+            else if arg-1 is "place":
+                hogo_flag(player, {_code}, "place")
+            else if arg-1 is "pvp":
+                hogo_flag(player, {_code}, "pvp")
+            else if arg-1 is "mob":
+                hogo_flag(player, {_code}, "atkmob")
+            else if arg-1 is "use":
+                hogo_flag(player, {_code}, "use")
+            else:
+                hogo_show_help_flag(player, {_code})
+        else:
+            if player's current language is "ja_jp":
+                send "{@msg_not_own_land_jp}" to player
+            else:
+                send "{@msg_not_own_land_en}" to player
+
+function hogo_show_help_flag(p: player, code: integer):
+    if {_p}'s current language is "ja_jp":
+        set {_status_break} to "&c禁止"
+        set {_status_place} to "&c禁止"
+        set {_status_pvp} to "&c禁止"
+        set {_status_atkmob} to "&c禁止"
+        set {_status_use} to "&c禁止"
+
+        if {hogo.info::%{_code}%::flag::break} is set:
+            set {_status_break} to "&a許可"
+        if {hogo.info::%{_code}%::flag::place} is set:
+            set {_status_place} to "&a許可"
+        if {hogo.info::%{_code}%::flag::pvp} is set:
+            set {_status_pvp} to "&a許可"
+        if {hogo.info::%{_code}%::flag::atkmob} is set:
+            set {_status_atkmob} to "&a許可"
+        if {hogo.info::%{_code}%::flag::use} is set:
+            set {_status_use} to "&a許可"
+
+        send "" to {_p}
+        send "&e&l----- :: 土地の制限 :: -----" to {_p}
+        send "&bブロックの破壊&7 (%{_status_break}%&7) - /flag break" to {_p}
+        send "&bブロックの設置&7 (%{_status_place}%&7) - /flag place" to {_p}
+        send "&bプレイヤー同士のPvP&7 (%{_status_pvp}%&7) - /flag pvp" to {_p}
+        send "&bモブへの攻撃&7 (%{_status_atkmob}%&7) - /flag mob" to {_p}
+        send "&bアイテム、ブロックの使用&7 (%{_status_use}%&7) - /flag use" to {_p}
+        send "" to {_p}
+    else:
+        set {_status_break} to "&cDeny"
+        set {_status_place} to "&cDeny"
+        set {_status_pvp} to "&cDeny"
+        set {_status_atkmob} to "&cDeny"
+        set {_status_use} to "&cDeny"
+
+        if {hogo.info::%{_code}%::flag::break} is set:
+            set {_status_break} to "&aAllow"
+        if {hogo.info::%{_code}%::flag::place} is set:
+            set {_status_place} to "&aAllow"
+        if {hogo.info::%{_code}%::flag::pvp} is set:
+            set {_status_pvp} to "&aAllow"
+        if {hogo.info::%{_code}%::flag::atkmob} is set:
+            set {_status_atkmob} to "&aAllow"
+        if {hogo.info::%{_code}%::flag::use} is set:
+            set {_status_use} to "&aAllow"
+
+        send "" to {_p}
+        send "&e&l----- :: Land Restrictions :: -----" to {_p}
+        send "&bBlock-Break&7 (%{_status_break}%&7) - /flag break" to {_p}
+        send "&bBlock-Place&7 (%{_status_place}%&7) - /flag place" to {_p}
+        send "&bPvP between players&7 (%{_status_pvp}%&7) - /flag pvp" to {_p}
+        send "&bAttacks on mobs&7 (%{_status_atkmob}%&7) - /flag mob" to {_p}
+        send "&bUse of items and blocks&7 (%{_status_use}%&7) - /flag use" to {_p}
+        send "" to {_p}
+
+function hogo_flag(p: player, code: integer, flag: string):
+    if {hogo.info::%{_code}%::flag::%{_flag}%} is not set:
+        set {hogo.info::%{_code}%::flag::%{_flag}%} to true
+        if {_p}'s current language is "ja_jp":
+            set {_status} to "&a&n許可"
+        else:
+            set {_status} to "&a&nAllow"
+    else:
+        clear {hogo.info::%{_code}%::flag::%{_flag}%}
+        if {_p}'s current language is "ja_jp":
+            set {_status} to "&c&n禁止"
+        else:
+            set {_status} to "&c&nDeny"
+    if {_flag} is "break":
+        if {_p}'s current language is "ja_jp":
+            set {_title} to "ブロックの破壊"
+        else:
+            set {_title} to "Block-Break"
+    else if {_flag} is "place":
+        if {_p}'s current language is "ja_jp":
+            set {_title} to "ブロックの設置"
+        else:
+            set {_title} to "Block-Place"
+    else if {_flag} is "pvp":
+        if {_p}'s current language is "ja_jp":
+            set {_title} to "プレイヤー同士のPvP"
+        else:
+            set {_title} to "PvP between players"
+    else if {_flag} is "atkmob":
+        if {_p}'s current language is "ja_jp":
+            set {_title} to "モブへの攻撃"
+        else:
+            set {_title} to "Attacks on mobs"
+    else if {_flag} is "use":
+        if {_p}'s current language is "ja_jp":
+            set {_title} to "アイテム、ブロックの使用"
+        else:
+            set {_title} to "Use of items or blocks"
+    if {_p}'s current language is "ja_jp":
+        send "&7%{_title}% &aを &7%{_status}%&a に変更しました。" to {_p}
+    else:
+        send "&7%{_title}% &ais changed to &7%{_status}%&a." to {_p}
+
+#以下、保護制限処理
+
+on break:
+    clear {_code}
+    loop {hogo.list::*}:
+        if x location of event-block is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+            if y location of event-block is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                if z location of event-block is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                    set {_code} to loop-value
+                    exit loop
+    if {_code} is set:
+        if {hogo.info::%{_code}%::owner} is not player's uuid:
+            if {hogo.info::%{_code}%::flag::break} is not set:
+                cancel event
+                if player's current language is "ja_jp":
+                    send "{@msg_cannot_changed_jp}" to player
+                else:
+                    send "{@msg_cannot_changed_en}" to player
+
+on entity block change:
+    if event-block is soil block:
+        clear {_code}
+        loop {hogo.list::*}:
+            if x location of event-block is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                if y location of event-block is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                    if z location of event-block is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                        set {_code} to loop-value
+                        exit loop
+        if {_code} is set:
+            if {hogo.info::%{_code}%::owner} is not player's uuid:
+                if {hogo.info::%{_code}%::flag::break} is not set:
+                    cancel event
+                    if player's current language is "ja_jp":
+                        send "{@msg_cannot_changed_jp}" to player
+                    else:
+                        send "{@msg_cannot_changed_en}" to player
+
+
+on place:
+    clear {_code}
+    loop {hogo.list::*}:
+        if x location of event-block is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+            if y location of event-block is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                if z location of event-block is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                    set {_code} to loop-value
+                    exit loop
+    if {_code} is set:
+        if {hogo.info::%{_code}%::owner} is not player's uuid:
+            if {hogo.info::%{_code}%::flag::place} is not set:
+                cancel event
+                if player's current language is "ja_jp":
+                    send "{@msg_cannot_changed_jp}" to player
+                else:
+                    send "{@msg_cannot_changed_en}" to player
+
+on damage:
+    if attacker is a player:
+        if victim is a player:
+            clear {_code}
+            loop {hogo.list::*}:
+                if x location of victim is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                    if y location of victim is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                        if z location of victim is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                            set {_code} to loop-value
+                            exit loop
+            if {_code} is set:
+                if {hogo.info::%{_code}%::flag::pvp} is not set:
+                    cancel event
+                    if attacker's current language is "ja_jp":
+                        send "{@msg_cannot_changed_jp}" to attacker
+                    else:
+                        send "{@msg_cannot_changed_en}" to attacker
+        else:
+            clear {_code}
+            loop {hogo.list::*}:
+                if x location of victim is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                    if y location of victim is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                        if z location of victim is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                            set {_code} to loop-value
+                            exit loop
+            if {_code} is set:
+                if {hogo.info::%{_code}%::flag::atkmob} is not set:
+                    cancel event
+                    if attacker's current language is "ja_jp":
+                        send "{@msg_cannot_changed_jp}" to attacker
+                    else:
+                        send "{@msg_cannot_changed_en}" to attacker
+
+on rightclick:
+    if event-block is chest or furnace or crafting table or jukebox or ender chest or enchanting table or shulker box or loom or composter or stonecutter or smithing table or grindstone or fletching table or cartography table or blast furnace or barrel or smoker or bell or campfire or repeater or comparator or daylight detector or dispenser or dropper or hopper or lectern or trapped chest or note block or cauldron or a button or lever or mangrove button:
+        clear {_code}
+        loop {hogo.list::*}:
+            if x location of targeted block is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                if y location of targeted block is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                    if z location of targeted block is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                        set {_code} to loop-value
+                        exit loop
+        if {_code} is set:
+            if {hogo.info::%{_code}%::owner} is not player's uuid:
+                if {hogo.info::%{_code}%::flag::use} is not set:
+                    cancel event
+                    if player's current language is "ja_jp":
+                        send "{@msg_cannot_changed_jp}" to player
+                    else:
+                        send "{@msg_cannot_changed_en}" to player

@@ -1,0 +1,3 @@
+on join:
+    set {convert_lib.uuid::%player's uuid%} to player
+    set {convert_lib.mcid::%player%} to player's uuid
