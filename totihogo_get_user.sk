@@ -1,0 +1,43 @@
+command /admin_hogo_get_user:
+    permission: admin
+    trigger:
+        send "&e検索しています..." to player
+        clear {_n}
+        loop {hogo.list::*}:
+            if x location of player is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+                if y location of player is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+                    if z location of player is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+                        set {_n} to loop-value
+                        exit loop
+        if {_n} is set:
+            send "&r" to player
+            send "&e保護情報が見つかりました。" to player
+            send " &7- &a保護番号: %{_n}%" to player
+            send " &7- &a所有者UUID: %{hogo.info::%{_n}%::owner}%" to player
+            send " &7- &a所有者MCID: %{convert_lib.uuid::%{hogo.info::%{_n}%::owner}%}%" to player
+            send "&r" to player
+        else:
+            send "&eこの場所は保護されていません。" to player
+
+command /admin_hogo_query_get_list:
+    permission: admin
+    trigger:
+        send "&eクエリ結果:" to player
+        loop {hogo.list::*}:
+            send " &7- &f%loop-value%" to player
+
+command /admin_hogo_query_get_owner_from_id [<integer>]:
+    permission: addmin
+    trigger:
+        send "&eクエリ結果:" to player
+        if {hogo.info::%arg-1%::owner} is not set:
+            send "持ち主データが見つかりませんでした。" to player
+        else:
+            send "&eUUID: %{hogo.info::%arg-1%::owner}%" to player
+
+command /admin_hogo_remove [<integer>]:
+    permission: admin
+    trigger:
+        send "&e削除しています..." to player
+        hogo_remove(arg-1)
+        send "&a削除しました！" to player
