@@ -755,6 +755,36 @@ on damage:
                     else:
                         send "{@msg_cannot_changed_en} - %{_code}%" to attacker
 
+on click on armor stand:
+    event-entity is armor stand
+    set {_b} to block at location of event-entity
+    clear {_code}
+    if is_claim_in(location of {_b}):
+        set {_code} to get_claim_in(location of {_b})
+    if {_code} is set:
+        if {hogo.info::%{_code}%::owner} is not player's uuid:
+            if {hogo.info::%{_code}%::flag::use} is not set:
+                cancel event
+                if player's current language is "ja_jp":
+                    send "{@msg_cannot_changed_jp} - %{_code}%" to player
+                else:
+                    send "{@msg_cannot_changed_en} - %{_code}%" to player
+
+on damage:
+    victim is an armor stand
+    set {_b} to block at location of victim
+    clear {_code}
+    if is_claim_in(location of {_b}):
+        set {_code} to get_claim_in(location of {_b})
+    if {_code} is set:
+        if {hogo.info::%{_code}%::owner} is not attacker's uuid:
+            if {hogo.info::%{_code}%::flag::break} is not set:
+                cancel event
+                if attacker's current language is "ja_jp":
+                    send "{@msg_cannot_changed_jp} - %{_code}%" to attacker
+                else:
+                    send "{@msg_cannot_changed_en} - %{_code}%" to attacker
+
 on rightclick:
     add chest to {_b::*}
     add furnace to {_b::*}
