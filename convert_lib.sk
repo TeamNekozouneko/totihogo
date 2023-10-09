@@ -1,3 +1,49 @@
 on join:
-    set {convert_lib.uuid::%player's uuid%} to player
+    set {convert_lib.uuid::%player's uuid%} to "%player%"
     set {convert_lib.mcid::%player%} to player's uuid
+
+command /admin_convert_lib_query_get_user_from_uuid [<text>]:
+    permission: admin
+    trigger:
+        send "&eクエリ結果: %{convert_lib.uuid::%arg-1%}%" to player
+
+command /admin_convert_lib_query_get_uuid_from_user [<offline player>]:
+    permission: admin
+    trigger:
+        send "&eクエリ結果: %{convert_lib.mcid::%arg-1%}%" to player
+
+command /admin_convert_lib_query_verify_user [<offline player>]:
+    permission: admin
+    trigger:
+        send "&eMCID クエリ結果: %{convert_lib.mcid::%arg-1%}%" to player
+        send "&eUUID クエリ結果: %{convert_lib.uuid::%{convert_lib.mcid::%arg-1%}%}%" to player
+        if {convert_lib.uuid::%{convert_lib.mcid::%arg-1%}%} is not arg-1:
+            send "&c※ データの破損を検出しました。" to player
+            send "&aデータ補正を実行しました。" to player
+            set {convert_lib.uuid::%{convert_lib.mcid::%arg-1%}%} to arg-1
+        else:
+            send "&aデータに異常はありませんでした。" to player
+
+command /admin_convert_lib_query_verify_uuid [<text>]:
+    permission: admin
+    trigger:
+        send "&eMCID クエリ結果: %{convert_lib.uuid::%arg-1%}%" to player
+        send "&eUUID クエリ結果: %{convert_lib.mcid::%{convert_lib.uuid::%arg-1%}%}%" to player
+        if {convert_lib.mcid::%{convert_lib.uuid::%arg-1%}%} is not arg-1:
+            send "&c※ データの破損を検出しました。" to player
+            send "&aデータ補正を実行しました。" to player
+            set {convert_lib.mcid::%{convert_lib.uuid::%arg-1%}%} to arg-1
+        else:
+            send "&aデータに異常はありませんでした。" to player
+
+
+command /admin_hogo_query_data_correction:
+    permission: admin
+    trigger:
+        set {_n} to 0
+        loop all offline players:
+            if {convert_lib.mcid::%loop-value%} is not (loop-value's uuid):
+                add 1 to {_n}
+                send loop-value to player
+                set {convert_lib.mcid::%loop-value%} to loop-value's uuid
+        send "&a%{_n}%件のデータを補正しました。" to player
