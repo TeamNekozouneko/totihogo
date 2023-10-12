@@ -78,44 +78,48 @@ command /hogo [<text>]:
             else:
                 send "&cUsage: /hogo <remove>" to player
         else if arg-1 is "remove":
+            #clear {_n}
+            #loop {hogo.list::*}:
+            #    if x location of player is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
+            #        if y location of player is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
+            #            if z location of player is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
+            #                set {_n} to loop-value
+            #                exit loop
             clear {_n}
-            loop {hogo.list::*}:
-                if x location of player is between x location of {hogo.info::%loop-value%::pos1} and x location of {hogo.info::%loop-value%::pos2}:
-                    if y location of player is between y location of {hogo.info::%loop-value%::pos1} and y location of {hogo.info::%loop-value%::pos2}:
-                        if z location of player is between z location of {hogo.info::%loop-value%::pos1} and z location of {hogo.info::%loop-value%::pos2}:
-                            set {_n} to loop-value
-                            exit loop
-            if player is op:
-                clear {_b}
-                loop all blocks within {hogo.info::%{_n}%::pos1} and {hogo.info::%{_n}%::pos2}:
-                    if loop-block is not air:
-                        add 1 to {_b}
-                hogo_remove({_n})
-                add {_b} to {hogo.player::%player's uuid%::blocknum}
-                if player's current language is "ja_jp":
-                    send "{@msg_removed_jp1}&7%{_n}%{@msg_removed_jp2}" to player
-                    send "{@msg_remain_jp1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_jp2}" to player
+            if is_claim_in(location of player):
+                set {_n} to get_claim_in(location of player) parsed as number
+            if {_n} is set:
+                if player is op:
+                    clear {_b}
+                    loop all blocks within {hogo.info::%{_n}%::pos1} and {hogo.info::%{_n}%::pos2}:
+                        if loop-block is not air:
+                            add 1 to {_b}
+                    hogo_remove({_n})
+                    add {_b} to {hogo.player::%player's uuid%::blocknum}
+                    if player's current language is "ja_jp":
+                        send "{@msg_removed_jp1}&7%{_n}%{@msg_removed_jp2}" to player
+                        send "{@msg_remain_jp1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_jp2}" to player
+                    else:
+                        send "{@msg_removed_en1}&7%{_n}%{@msg_removed_en2}" to player
+                        send "{@msg_remain_en1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_en2}" to player
+                else if {hogo.info::%{_n}%::owner} is player's uuid:
+                    clear {_b}
+                    loop all blocks within {hogo.info::%{_n}%::pos1} and {hogo.info::%{_n}%::pos2}:
+                        if loop-block is not air:
+                            add 1 to {_b}
+                    hogo_remove({_n})
+                    add {_b} to {hogo.player::%player's uuid%::blocknum}
+                    if player's current language is "ja_jp":
+                        send "{@msg_removed_jp1}&7%{_n}%{@msg_removed_jp2}" to player
+                        send "{@msg_remain_jp1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_jp2}" to player
+                    else:
+                        send "{@msg_removed_en1}&7%{_n}%{@msg_removed_en2}" to player
+                        send "{@msg_remain_en1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_en2}" to player
                 else:
-                    send "{@msg_removed_en1}&7%{_n}%{@msg_removed_en2}" to player
-                    send "{@msg_remain_en1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_en2}" to player
-            else if {hogo.info::%{_n}%::owner} is player's uuid:
-                clear {_b}
-                loop all blocks within {hogo.info::%{_n}%::pos1} and {hogo.info::%{_n}%::pos2}:
-                    if loop-block is not air:
-                        add 1 to {_b}
-                hogo_remove({_n})
-                add {_b} to {hogo.player::%player's uuid%::blocknum}
-                if player's current language is "ja_jp":
-                    send "{@msg_removed_jp1}&7%{_n}%{@msg_removed_jp2}" to player
-                    send "{@msg_remain_jp1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_jp2}" to player
-                else:
-                    send "{@msg_removed_en1}&7%{_n}%{@msg_removed_en2}" to player
-                    send "{@msg_remain_en1}&7%{hogo.player::%player's uuid%::blocknum}%{@msg_remain_en2}" to player
-            else:
-                if player's current language is "ja_jp":
-                    send "{@msg_not_own_land_jp}" to player
-                else:
-                    send "{@msg_not_own_land_en}" to player
+                    if player's current language is "ja_jp":
+                        send "{@msg_not_own_land_jp}" to player
+                    else:
+                        send "{@msg_not_own_land_en}" to player
         else:
             if player's current language is "ja_jp":
                 send "{@msg_not_exist_arg_jp}" to player
@@ -145,7 +149,7 @@ every 5 tick:
     loop all players:
         clear {_n}
         if is_claim_in(location of loop-player):
-            set {_n} to get_claim_in(location of loop-player)
+            set {_n} to get_claim_in(location of loop-player) parsed as number
         if {_n} is set:
             if {convert_lib.uuid::%{hogo.info::%{_n}%::owner}%} is not set:
                 if loop-player's current language is "ja_jp":
