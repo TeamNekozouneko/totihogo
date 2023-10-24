@@ -741,23 +741,25 @@ on damage:
             if is_claim_in(location of victim):
                 set {_code} to get_claim_in(location of victim)
             if {_code} is set:
-                if {hogo.info::%{_code}%::flag::pvp} is not set:
-                    cancel event
-                    if attacker's current language is "ja_jp":
-                        send "{@msg_cannot_changed_jp} - %{_code}%" to attacker
-                    else:
-                        send "{@msg_cannot_changed_en} - %{_code}%" to attacker
+                if {hogo.info::%{_code}%::owner} is not attacker's uuid:
+                    if {hogo.info::%{_code}%::flag::pvp} is not set:
+                        cancel event
+                        if attacker's current language is "ja_jp":
+                            send "{@msg_cannot_changed_jp} - %{_code}%" to attacker
+                        else:
+                            send "{@msg_cannot_changed_en} - %{_code}%" to attacker
         else:
             clear {_code}
             if is_claim_in(location of victim):
                 set {_code} to get_claim_in(location of victim)
             if {_code} is set:
-                if {hogo.info::%{_code}%::flag::atkmob} is not set:
-                    cancel event
-                    if attacker's current language is "ja_jp":
-                        send "{@msg_cannot_changed_jp} - %{_code}%" to attacker
-                    else:
-                        send "{@msg_cannot_changed_en} - %{_code}%" to attacker
+                if {hogo.info::%{_code}%::owner} is not attacker's uuid:
+                    if {hogo.info::%{_code}%::flag::atkmob} is not set:
+                        cancel event
+                        if attacker's current language is "ja_jp":
+                            send "{@msg_cannot_changed_jp} - %{_code}%" to attacker
+                        else:
+                            send "{@msg_cannot_changed_en} - %{_code}%" to attacker
 
 on click on armor stand:
     event-entity is armor stand
